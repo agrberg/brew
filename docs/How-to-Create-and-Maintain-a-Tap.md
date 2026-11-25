@@ -156,6 +156,46 @@ A tap is just a Git repository so you don't have to do anything specific when ma
 
 Once your tap is installed, Homebrew will update it each time a user runs `brew update`. Outdated formulae will be upgraded when a user runs `brew upgrade`, like core formulae.
 
+### Linting and testing
+
+The generated `tests.yml` workflow runs [`brew test-bot`](BrewTestBot.md#steps) on GitHub Actions to test the tap.
+To run its [tap checks](BrewTestBot.md#tap-checks) yourself, use the same commands with the tap's name:
+
+```sh
+brew style $YOUR_GITHUB_USERNAME/tap
+brew readall --aliases --os=all --arch=all $YOUR_GITHUB_USERNAME/tap
+brew audit --except=installed --tap=$YOUR_GITHUB_USERNAME/tap
+```
+
+`brew readall` and `brew audit` apply only to taps with formulae or casks, so a tap that only ships external commands needs just `brew style`.
+`brew readall` skips a tap that is not trusted, with a warning and a zero exit status, so [trust the tap](Tap-Trust.md) first.
+
+Some taps manipulate formulae (install, uninstall and so on) or otherwise change your running system, for example an [external command](External-Commands.md) that installs or removes formulae.
+One option for developing and testing these taps is to check out [Homebrew/brew](https://github.com/Homebrew/brew) to a sandbox location (e.g. `~/code/brew-sandbox`) so you can do your development in its `Library/Taps`.
+Its `bin/brew` uses its own locally scoped directories, which Git ignores.
+Use a sandbox prefix only for development and testing: a [Tier 3 configuration](Support-Tiers.md#tier-3) is not supported for everyday use.
+
+```sh
+git clone https://github.com/Homebrew/brew ~/code/brew-sandbox
+git clone https://github.com/$YOUR_GITHUB_USERNAME/homebrew-tap ~/code/brew-sandbox/Library/Taps/$YOUR_GITHUB_USERNAME/homebrew-tap
+```
+
+By default every prefix uses the same cache and log directories in your home directory.
+In a terminal that you use only for the sandbox, set your own, so that a command such as `brew cleanup --prune=all` cannot delete files that your everyday install uses:
+
+```sh
+export HOMEBREW_CACHE=~/code/brew-sandbox/cache HOMEBREW_LOGS=~/code/brew-sandbox/logs
+```
+
+Then run the checks with the sandbox's `brew`, for example:
+
+```sh
+~/code/brew-sandbox/bin/brew style $YOUR_GITHUB_USERNAME/tap
+```
+
+`brew style` and `brew audit` are developer commands, so they print a notice that developer mode is on.
+The setting applies to the sandbox only.
+
 ### Best practices
 
 - **Keep your tap up to date**: Regularly update your formulae to the latest versions of the software you're packaging
